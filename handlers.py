@@ -84,3 +84,103 @@ async def start_break_handler(callback: CallbackQuery):
         f"🔴 Выход зафиксирован\n\n🕒 {time}",
         reply_markup=main_menu()
     )
+@router.callback_query(F.data == "end_break")
+async def end_break_handler(callback: CallbackQuery):
+    active = await get_active_break(callback.from_user.id)
+
+    if not active:
+        await callback.answer(
+            "❌ Нет активного выхода",
+            show_alert=True
+        )
+        return
+
+    await callback.message.edit_text(
+        "Выберите комментарий:",
+        reply_markup=comment_menu()
+    )
+
+
+@router.callback_query(F.data.startswith("comment_"))
+async def choose_comment(callback: CallbackQuery):
+    comments = {
+        "comment_none": "",
+        "comment_delay": "задержка",
+        "comment_lunch": "обед",
+        "comment_delay_lunch": "задержка + обед",
+        "comment_product": "товар"
+    }
+
+    if callback.data == "comment_custom":
+        await callback.message.edit_text(
+            "✏️ Введите комментарий:"
+        )
+
+        await callback.bot.get_current().fsm.set_state(
+            callback.from_user.id,
+            callback.from_user.id,
+            CustomComment.waiting_comment
+        )
+
+        return
+
+    selected_comments[callback.from_user.id] = comments.get(
+        callback.data,
+        ""
+    )
+
+    text = selected_comments[callback.from_user.id]
+
+    if text:
+        preview = text
+    else:
+        preview = "без комментария"
+
+    await callback.message.edit_text(
+        f"Вы выбрали:\n\n{preview}\n\nПодтвердить?",
+        reply_markup=confirm_menu()
+    )
+
+
+@router.callback_query(F.data == "confirm")
+async def confirm_break(callback: CallbackQuery):
+    comment = selected_comments.get(
+        callback.from_user.id,
+        ""
+    )
+
+    time = await finish_break(
+        callback.from_user.id,
+        comment
+    )
+
+    selected_comments.pop(
+        callback.from_user.id,
+        None
+    )
+
+    await callback.message.edit_text(
+        f"🟢 Возвращение зафиксировано\n\n🕒 {time}",
+        reply_markup=main_menu()
+    )
+
+
+@router.callback_query(F.data == "change")
+async def change_comment(callback: CallbackQuery):
+    await callback.message.edit_text(
+        "Выберите комментарий:",
+        reply_markup=comment_menu()
+    )
+
+
+@router.callback_query(F.data == "cancel")
+async def cancel_comment(callback: CallbackQuery):
+    selected_comments.pop(
+        callback.from_user.id,
+        None
+    )
+
+    await callback.message.edit_text(
+        "📖 Журнал выходов\n\nВыберите действие:",
+        reply_markup=main_menu()
+    )
