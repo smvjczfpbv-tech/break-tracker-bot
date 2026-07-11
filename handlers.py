@@ -102,7 +102,7 @@ async def end_break_handler(callback: CallbackQuery):
 
 
 @router.callback_query(F.data.startswith("comment_"))
-async def choose_comment(callback: CallbackQuery):
+async def choose_comment(callback: CallbackQuery, state: FSMContext):
     comments = {
         "comment_none": "",
         "comment_delay": "задержка",
@@ -111,7 +111,9 @@ async def choose_comment(callback: CallbackQuery):
         "comment_product": "товар"
     }
 
-    if callback.data == "comment_custom":
+if callback.data == "comment_custom":
+    await state.set_state(CustomComment.waiting_comment)
+
     await callback.message.edit_text(
         "✏️ Введите комментарий:"
     )
