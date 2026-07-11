@@ -112,17 +112,13 @@ async def choose_comment(callback: CallbackQuery):
     }
 
     if callback.data == "comment_custom":
-        await callback.message.edit_text(
-            "✏️ Введите комментарий:"
-        )
+    await callback.message.edit_text(
+        "✏️ Введите комментарий:"
+    )
 
-        await callback.bot.get_current().fsm.set_state(
-            callback.from_user.id,
-            callback.from_user.id,
-            CustomComment.waiting_comment
-        )
+    await callback.answer()
 
-        return
+    return
 
     selected_comments[callback.from_user.id] = comments.get(
         callback.data,
