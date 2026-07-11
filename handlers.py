@@ -184,3 +184,75 @@ async def cancel_comment(callback: CallbackQuery):
         "📖 Журнал выходов\n\nВыберите действие:",
         reply_markup=main_menu()
     )
+@router.message(CustomComment.waiting_comment)
+async def save_custom_comment(
+    message: Message,
+    state: FSMContext
+):
+    selected_comments[message.from_user.id] = message.text
+
+    await state.clear()
+
+    await message.answer(
+        f"Вы выбрали:\n\n{message.text}\n\nПодтвердить?",
+        reply_markup=confirm_menu()
+    )
+
+
+@router.callback_query(F.data == "report")
+async def report_handler(callback: CallbackQuery):
+    breaks = await get_today_breaks(
+        callback.from_user.id
+    )
+
+    if not breaks:
+        await callback.answer(
+            "📄 За сегодня записей нет",
+            show_alert=True
+        )
+        return
+
+    text = "📄 Отчет за сегодня:\n\n"
+
+    for item in breaks:
+        start, end, comment = item
+
+        line = f"{start}–{end}"
+
+        if comment:
+            line += f" {comment}"
+
+        text += line + "\n"
+
+    await callback.message.edit_text(
+        text,
+        reply_markup=main_menu()
+    )
+
+
+@router.callback_query(F.data == "clear")
+async def clear_handler(callback: CallbackQuery):
+    await callback.message.edit_text(
+        "Удалить все выходы за сегодня?",
+        reply_markup=clear_confirm_menu()
+    )
+
+
+@router.callback_query(F.data == "clear_yes")
+async def clear_yes_handler(callback: CallbackQuery):
+    await clear_breaks(
+        callback.from_user.id
+    )
+
+    await callback.message.edit_text(
+        "✅ Записи очищены",
+        reply_markup=main_menu()
+    )
+
+
+@router.callback_query(F.data == "clear_no")
+async def clear_no_handler(callback: CallbackQuery):
+    await callback.message.edit_text(
+        "📖 Журнал выходов\n\nВыберите действие:",
+        reply_markup=main_menu()
+    )
